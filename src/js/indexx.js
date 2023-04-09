@@ -26,6 +26,7 @@ async function onSearchForm(e) {
 
   try {
     observer.unobserve(targetEl);
+
     if (pixabayApi.searchQuery === '') {
       galleryEl.innerHTML = '';
 
@@ -52,21 +53,32 @@ async function onSearchForm(e) {
           timeout: 2500,
         }
       );
-      searchFormEl.reset();
+      formEl.reset();
+      return;
+    }
+
+    if (data.hits.length < pixabayApi.per_page) {
+      galleryEl.innerHTML = createGalleryCards(data.hits);
+      lightbox.refresh();
+
+      Notiflix.Notify.warning(
+        "We're sorry, but you've reached the end of search results.",
+        {
+          clickToClose: true,
+          timeout: 2500,
+        }
+      );
       return;
     }
 
     galleryEl.innerHTML = createGalleryCards(data.hits);
     lightbox.refresh();
+    observer.observe(targetEl);
 
     Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`, {
       clickToClose: true,
       timeout: 2500,
     });
-
-    if (pixabayApi.page < Math.ceil(data.totalHits / pixabayApi.per_page)) {
-      observer.observe(targetEl);
-    }
   } catch (error) {
     console.log(error);
   }
@@ -74,7 +86,7 @@ async function onSearchForm(e) {
 
 const observer = new IntersectionObserver(
   async (entries, observer) => {
-    if (entries[0].isIntersecting && pixabayApi.query !== null) {
+    if (entries[0].isIntersecting) {
       pixabayApi.page += 1;
 
       try {
@@ -103,7 +115,6 @@ const observer = new IntersectionObserver(
               timeout: 2500,
             }
           );
-          observer.unobserve(targetEl);
           return;
         }
       } catch (err) {
