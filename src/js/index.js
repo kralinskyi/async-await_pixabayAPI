@@ -20,13 +20,14 @@ async function onFindPhotosClick(e) {
   e.preventDefault();
 
   const { searchQuery } = e.currentTarget.elements;
-
   if (!searchQuery.value.trim()) return;
   if (searchQuery.value.trim()) formBtn.disabled = false;
 
   apiPixabay.currentQuery = searchQuery.value.trim();
   apiPixabay.resetPage();
+
   loadMoreBtn.hidden = true;
+
   clearGalleryContainer();
 
   onFetchPhotosClick();
@@ -39,7 +40,7 @@ async function onFetchPhotosClick() {
 
     const { hits } = photosData;
 
-    ifLogic(photosData);
+    handleRequestStatus(photosData);
 
     loadMoreBtn.disable = true;
     loadMoreBtn.textContent = 'LOADING>>>';
@@ -64,24 +65,29 @@ function clearGalleryContainer() {
   gallery.innerHTML = '';
 }
 
-function ifLogic({ hits, total, totalHits }) {
+function handleRequestStatus({ hits, total, totalHits }) {
+  let message = '';
+  let notificationType = '';
+
   if (total > hits.length || hits.length * apiPixabay.page < total || !total) {
     loadMoreBtn.hidden = false;
   }
 
   if (!hits.length) {
     loadMoreBtn.hidden = true;
-
-    Notify.failure(
-      'Sorry, there are no images matching your search query. Please try again.'
-    );
-    throw new Error('bad request - no such photos');
+    message =
+      'Sorry, there are no images matching your search query. Please try again.';
+    notificationType = 'failure';
   } else {
-    Notify.success(`Hooray! We found ${totalHits} images.`);
+    message = `Hooray! We found ${totalHits} images.`;
+    notificationType = 'success';
   }
 
   if (hits.length < apiPixabay.per_page) {
     loadMoreBtn.hidden = true;
-    Notify.warning('No more such photos');
+    message = 'No more such photos';
+    notificationType = 'warning';
   }
+
+  Notify[notificationType](message);
 }
