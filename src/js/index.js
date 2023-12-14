@@ -24,12 +24,11 @@ async function onFindPhotosClick(e) {
   if (!searchQuery.value.trim()) return;
   if (searchQuery.value.trim()) formBtn.disabled = false;
 
-  apiPixabay.q = searchQuery.value.trim();
+  apiPixabay.currentQuery = searchQuery.value.trim();
   apiPixabay.resetPage();
   loadMoreBtn.hidden = true;
   clearGalleryContainer();
 
-  // ===========================================================  same function!!!!
   onFetchPhotosClick();
 }
 

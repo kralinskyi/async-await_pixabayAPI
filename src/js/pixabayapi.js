@@ -4,7 +4,7 @@ export default class PixabayApi {
   constructor() {
     this.page = 1;
     this.per_page = 40;
-    this.q = '';
+    this.query = '';
     this.image_type = 'photo';
     this.orientation = 'horizontal';
     this.safesearch = true;
@@ -16,7 +16,7 @@ export default class PixabayApi {
     try {
       const params = {
         key: this.API_KEY,
-        q: this.q,
+        q: this.query,
         image_type: this.image_type,
         orientation: this.orientation,
         safesearch: this.safesearch,
@@ -36,5 +36,13 @@ export default class PixabayApi {
 
   resetPage() {
     this.page = 1;
+  }
+
+  get currentQuery() {
+    return this.query;
+  }
+
+  set currentQuery(newQuery) {
+    this.query = newQuery;
   }
 }
