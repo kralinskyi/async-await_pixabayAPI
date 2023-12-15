@@ -40,9 +40,10 @@ async function onSearchBtnClick(e) {
   apiPixabay.resetPage();
   clearGalleryContainer();
   apiPixabay.currentQuery = currentSearchQuery;
-  // Видаляємо спостерігача перед повторним запуском
 
+  // Видаляємо спостерігача перед повторним запуском
   observer.unobserve(target);
+
   await fetchMorePhotos();
 }
 
@@ -52,35 +53,42 @@ async function fetchMorePhotos() {
     const photosData = await apiPixabay.getPhotos();
     const { hits, totalHits } = photosData;
 
+    // Якщо результатів немає - жаль.
     if (!hits) {
       Notify.failure(
         'Sorry, there are no images matching your search query. Please try again.'
       );
-      // observer.unobserve(target);
+      return;
     }
 
+    // Якщо результати є - починаємо спостерігати за таргетом.
+
+    observer.observe(target);
+    // у випадку коли результатів меньше, ніж вміщається на сторінку - знімаємо обсервер, бо буде подвійний запит до API
     if (hits.length < apiPixabay.per_page) {
       Notify.warning('No more such photos');
+      observer.unobserve(target);
     }
 
     Notify.success(`Hooray! We found ${totalHits} images.`);
-
     formBtn.disabled = true;
-
     const galleryMarkup = makeMarkup(hits);
-    observer.observe(target);
 
+    // Якщо після успішних запитів спробуємо пошукати щось нове, що не матиме результатів  - знімаємо обсервер, щоб не було подвійного запиту до API, так як після очищення <UL> isIntersecting буде true.
     if (!galleryMarkup) {
       observer.unobserve(target);
     }
 
+    // Малюємо галерею
     gallery.insertAdjacentHTML('beforeend', galleryMarkup);
 
     formBtn.disabled = false;
+    // Оновлюємо екземпляр SimpleLightbox
     instance.refresh();
   } catch (error) {
     formBtn.disabled = false;
     console.log(error);
+    // В разі fail знімаємо обсервер
     observer.unobserve(target);
   }
 }
@@ -90,7 +98,6 @@ function clearGalleryContainer() {
 }
 
 function observeMorePhotos(entries) {
-  console.log(entries);
   entries.forEach(async ({ isIntersecting }) => {
     if (isIntersecting) {
       await fetchMorePhotos();
