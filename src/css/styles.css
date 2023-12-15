@@ -80,6 +80,7 @@ button:hover {
 .photo-card {
   display: flex;
   flex-direction: column;
+  min-height: 100px;
 }
 
 /* Стилі для посилань в photo-card */

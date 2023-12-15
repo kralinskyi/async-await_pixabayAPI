@@ -2,7 +2,7 @@ import './pixabayapi.js';
 //!=================================Реалізація з кнопкою <Load more> ============================== //
 // import './loadPhotos_Btn.js';
 
-//!=================================Реалізація з Intersection ============================== //
+//!==========================================Реалізація з Intersection ============================== //
 
 import PixabayApi from './pixabayapi.js';
 import { makeMarkup } from './templates.js';
@@ -15,72 +15,73 @@ const formBtn = searchForm.querySelector('button[type="submit"]');
 const gallery = document.querySelector('.gallery');
 const target = document.querySelector('.js-intersection-target');
 
-searchForm.addEventListener('submit', onFindPhotosClick);
+const instance = new SimpleLightbox('.gallery a');
+const apiPixabay = new PixabayApi();
 
-let isObserverSet = false;
+searchForm.addEventListener('submit', onSearchBtnClick);
 
 let options = {
   root: null,
   rootMargin: '100px',
 };
 
-let observer = new IntersectionObserver(moreLoadOnScroll, options);
+let observer = new IntersectionObserver(observeMorePhotos, options);
 
-function moreLoadOnScroll(entries, observer) {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      fetchMorePhotosWithObserver();
-    }
-  });
-}
-
-const instance = new SimpleLightbox('.gallery a');
-
-const apiPixabay = new PixabayApi();
-
-async function onFindPhotosClick(e) {
+async function onSearchBtnClick(e) {
   e.preventDefault();
 
-  const { searchQuery } = e.currentTarget.elements;
+  const currentSearchQuery = e.currentTarget.elements.searchQuery.value.trim();
 
-  if (!searchQuery.value.trim()) return;
-  if (searchQuery.value.trim()) formBtn.disabled = false;
-
-  apiPixabay.currentQuery = searchQuery.value.trim();
-  apiPixabay.resetPage();
-
-  clearGalleryContainer();
-
-  if (!isObserverSet) {
-    observer.observe(target);
-    isObserverSet = true;
+  if (!currentSearchQuery) {
+    Notify.warning("Can't search empty value");
+    return;
   }
 
+  apiPixabay.resetPage();
+  clearGalleryContainer();
+  apiPixabay.currentQuery = currentSearchQuery;
   // Видаляємо спостерігача перед повторним запуском
-  observer.unobserve(target);
 
-  fetchMorePhotosWithObserver();
+  observer.unobserve(target);
+  await fetchMorePhotos();
 }
 
-async function fetchMorePhotosWithObserver() {
+async function fetchMorePhotos() {
   try {
+    // Чекаємо на результати запиту по заданому значенню пошуку
     const photosData = await apiPixabay.getPhotos();
+    const { hits, totalHits } = photosData;
+
+    if (!hits) {
+      Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
+      // observer.unobserve(target);
+    }
+
+    if (hits.length < apiPixabay.per_page) {
+      Notify.warning('No more such photos');
+    }
+
+    Notify.success(`Hooray! We found ${totalHits} images.`);
+
     formBtn.disabled = true;
 
-    const { hits } = photosData;
-
-    handleRequestStatus(photosData);
-
     const galleryMarkup = makeMarkup(hits);
+    observer.observe(target);
+
+    if (!galleryMarkup) {
+      observer.unobserve(target);
+    }
 
     gallery.insertAdjacentHTML('beforeend', galleryMarkup);
 
     formBtn.disabled = false;
     instance.refresh();
-    observer.observe(target);
   } catch (error) {
     formBtn.disabled = false;
     console.log(error);
+    observer.unobserve(target);
   }
 }
 
@@ -88,23 +89,11 @@ function clearGalleryContainer() {
   gallery.innerHTML = '';
 }
 
-function handleRequestStatus({ hits, totalHits }) {
-  let message = '';
-  let notificationType = '';
-
-  if (!hits.length) {
-    message =
-      'Sorry, there are no images matching your search query. Please try again.';
-    notificationType = 'failure';
-  } else {
-    message = `Hooray! We found ${totalHits} images.`;
-    notificationType = 'success';
-  }
-
-  if (hits.length < apiPixabay.per_page) {
-    message = 'No more such photos';
-    notificationType = 'warning';
-  }
-
-  Notify[notificationType](message);
+function observeMorePhotos(entries) {
+  console.log(entries);
+  entries.forEach(async ({ isIntersecting }) => {
+    if (isIntersecting) {
+      await fetchMorePhotos();
+    }
+  });
 }
