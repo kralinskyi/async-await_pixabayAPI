@@ -58,7 +58,7 @@ async function fetchMorePhotos() {
     // Якщо результати є - починаємо спостерігати за таргетом.
 
     observer.observe(target);
-    // у випадку коли результатів меньше, ніж вміщається на сторінку - знімаємо обсервер, бо буде подвійний запит до API
+    // у випадку коли результатів меньше, ніж вміщується на сторінку - знімаємо обсервер, бо буде подвійний запит до API
     if (hits.length < apiPixabay.per_page) {
       Notify.warning('No more such photos');
       observer.unobserve(target);
